@@ -117,6 +117,11 @@
                 username = "ubuntu";
                 system = "x86_64-linux";
               };
+              "nampq@x86_64-linux" = import ./hosts/linux {
+                inherit inputs;
+                username = "nampq";
+                system = "x86_64-linux";
+              };
               "root@x86_64-linux" = import ./hosts/linux {
                 inherit inputs;
                 username = "root";
