@@ -27,7 +27,7 @@ home-manager.lib.homeManagerConfiguration {
       ;
   };
   modules = [
-    ../../home-manager/default.nix
+    # ../../home-manager/default.nix  # Removed: not a valid module
     {
       home = {
         username = username;
