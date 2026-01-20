@@ -19,7 +19,7 @@ Linux)
 esac
 
 # Initialize
-NIX_EFFECTIVE_BIN_PATH = ""
+NIX_EFFECTIVE_BIN_PATH=""
 
 # Ensure USER variable is set and exported
 if [ -z "$USER" ]; then
@@ -87,4 +87,64 @@ else
         fi
         echo "Using fallback NIX_EFFECTIVE_BIN_PATH: $NIX_EFFECTIVE_BIN_PATH"
     fi
+fi
+
+# Clone the dotfiles repository
+DOTFILES_DIR="$HOME/dotfiles"
+echo "Fetching the dotfiles repository..."
+
+# If GITHUB_PR is set, handle checkout for the PR branch
+if [ -n "$GITHUB_PR" ]; then
+  echo "Detected PR environment variable GITHUB_PR=$GITHUB_PR"
+  PR_REF="refs/pull/${GITHUB_PR}/head"
+  echo "Fetching pull request ref: $PR_REF"
+
+  if [ -d "$DOTFILES_DIR" ]; then
+    echo "Dotfiles repository already exists. Using git fetch to retrieve PR ref..."
+    cd "$DOTFILES_DIR"
+    git fetch origin "$PR_REF":pr-"$GITHUB_PR"
+    git checkout pr-"$GITHUB_PR"
+    git pull
+  else
+    echo "Cloning dotfiles repository..."
+    git clone https://github.com/nampq11/dotfiles.git "$DOTFILES_DIR"
+    cd "$DOTFILES_DIR"
+    git fetch origin "$PR_REF":pr-"$GITHUB_PR"
+    git checkout pr-"$GITHUB_PR"
+  fi
+else
+  if [ -d "$DOTFILES_DIR" ]; then
+    echo "Dotfiles repository already exists. Fetching latest changes..."
+    cd "$DOTFILES_DIR"
+    git fetch origin
+    git pull
+  else
+    echo "Cloning dotfiles repository into $DOTFILES_DIR..."
+    git clone https://github.com/nampq11/dotfiles.git "$DOTFILES_DIR"
+    cd "$DOTFILES_DIR"
+  fi
+fi
+
+# Handle `make` installation
+if ! command -v make >/dev/null 2>&1; then
+  echo "Installing make..."
+  if [ "$OS" = "macos" ]; then
+    brew install make
+  else
+    sudo apt-get install make
+  fi
+fi
+
+# Install Nix packages
+echo "Running installation commands..."
+if [ -n "$NIX_EFFECTIVE_BIN_PATH" ] && [ -d "$NIX_EFFECTIVE_BIN_PATH" ]; then
+  echo "Prepending $NIX_EFFECTIVE_BIN_PATH to PATH for 'make install' command."
+  echo "Ensuring USER=$USER and CI=$CI are passed to make install."
+  env PATH="$NIX_EFFECTIVE_BIN_PATH:$PATH" USER="$USER" CI="$CI" make install
+else
+  echo "Warning: NIX_EFFECTIVE_BIN_PATH ('$NIX_EFFECTIVE_BIN_PATH') is not set or not a directory."
+  echo "Running 'make install' with potentially incomplete PATH. Current PATH: $PATH"
+  echo "Attempting to find nix via 'command -v nix': $(command -v nix || echo 'nix not found in current PATH')"
+  echo "USER=$USER will be available to make install (exported)."
+  make install
 fi
