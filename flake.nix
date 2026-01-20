@@ -1,5 +1,5 @@
 {
-  description = "Shun Kakinoki's Nix Configuration";
+  description = "Nam Pham's Nix Configuration";
 
   inputs = {
     nixpkgs = {
@@ -90,20 +90,20 @@
           in
           {
             darwinConfigurations = {
-              aarch64-darwin = mkDarwin { username = "shunkakinoki"; };
+              aarch64-darwin = mkDarwin { username = "nampham"; };
               runner = mkDarwin {
                 isRunner = true;
                 username = "runner";
               };
               galactica = import ./named-hosts/galactica {
                 inherit inputs;
-                username = "shunkakinoki";
+                username = "nampham";
               };
             };
             nixosConfigurations = {
               x86_64-linux = import ./hosts/nixos {
                 inherit inputs;
-                username = "shunkakinoki";
+                username = "nampham";
               };
               runner = import ./hosts/nixos {
                 inherit inputs;
@@ -194,6 +194,8 @@
 
             devenv.shells.default = (import ./devenv.nix) { inherit pkgs; } // {
               devenv.root = devenvRoot;
+              # Disable secretspec which is not supported with flakes
+              secretspec.enable = false;
             };
 
             treefmt = {
