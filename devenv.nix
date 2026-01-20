@@ -182,6 +182,9 @@
                 shell = (treefmtToml.formatter.shell or { }) // {
                   command = lib.getExe pkgs.shfmt;
                 };
+                lua = (treefmtToml.formatter.lua or { }) // {
+                  command = lib.getExe pkgs.stylua;
+                };
               };
             };
           in

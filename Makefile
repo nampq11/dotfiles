@@ -157,15 +157,15 @@ sync: ## Sync dotagents (commands, skills, MCP configuration).
 	@$(MAKE) -C dotagents sync
 
 .PHONY: test
-test: neovim-test shell-test ## Run all tests (neovim + shell).
+test: shell-test ## Run all tests (shell).
 
 .PHONY: update
-update: nix-update shell-update neovim-update ## Update Nix flake and configurations.
+update: nix-update shell-update ## Update Nix flake and configurations.
 
 ##@ Upgrade
 
 .PHONY: upgrade
-upgrade: upgrade-overlays neovim-upgrade ## Upgrade overlays and Nix flake, then rebuild.
+upgrade: upgrade-overlays ## Upgrade overlays and Nix flake, then rebuild.
 
 .PHONY: upgrade-overlays
 upgrade-overlays: ## Upgrade all custom overlays to latest versions.
@@ -520,80 +520,11 @@ docker-build: ## Build Docker image.
 	@docker build -t $(DOCKER_IMAGE_LATEST) -t $(DOCKER_IMAGE_TAGGED) -f Dockerfile .
 	@echo "✅ Docker image built: $(DOCKER_IMAGE_LATEST) and $(DOCKER_IMAGE_TAGGED)"
 
-##@ Neovim
-
-.PHONY: neovim-dev
-neovim-dev: ## Set up local Neovim development environment.
-	@echo "🔧 Setting up local Neovim development environment..."
-	@if [ -L "$(HOME)/.config/nvim" ]; then \
-		rm "$(HOME)/.config/nvim"; \
-	fi
-	@mkdir -p "$(HOME)/.config/nvim"
-	@ln -sf "$(PWD)/home-manager/programs/neovim/init.lua" "$(HOME)/.config/nvim/init.lua"
-	@ln -sf "$(PWD)/home-manager/programs/neovim/nvim-pack-lock.json" "$(HOME)/.config/nvim/nvim-pack-lock.json"
-	@echo "✅ Local Neovim development environment ready"
-	@echo "🚧 To restore the Nix-managed version, run 'make switch'"
-
-.PHONY: neovim-upgrade
-neovim-upgrade: ## Update Neovim plugins.
-	@echo "📦 Updating neovim plugins..."
-	@nvim --headless +"lua vim.pack.update()" +qa
-	@echo "✅ Neovim plugins updated"
-
-.PHONY: neovim-sync
-neovim-sync: neovim-upgrade ## Sync Neovim plugins.
-	@echo "🔄 Syncing neovim plugins..."
-	@nvim --headless +"lua vim.cmd('source ' .. vim.fn.stdpath('config') .. '/init.lua')" +qa
-	@echo "✅ Neovim plugins synced"
-
-.PHONY: neovim-test
-neovim-test: ## Run Neovim tests using plenary.nvim.
-	@echo "🧪 Running Neovim tests..."
-	@$(PWD)/home-manager/programs/neovim/run_tests.sh
-	@echo "✅ Neovim tests completed"
-
-.PHONY: neovim-test-dev
-neovim-test-dev: ## Run Neovim tests inside the Nix dev shell (mirrors CI).
-	@echo "🧪 Running Neovim tests inside the Nix dev shell..."
-	@DEVENV_ROOT=$(CURDIR) $(NIX_ALLOW_UNFREE) $(NIX_EXEC) develop $(NIX_FLAGS) .# --command $(MAKE) neovim-test
-
 ##@ Lua
 
 .PHONY: lua-check
-lua-check: lua-check-neovim lua-check-hammerspoon ## Check all Lua configurations (Neovim and Hammerspoon).
+lua-check: lua-check-hammerspoon ## Check all Lua configurations (Hammerspoon).
 	@echo "✅ All Lua configurations validated"
-
-.PHONY: lua-check-neovim
-lua-check-neovim: ## Check Neovim configuration.
-	@echo "🔍 Checking Neovim configuration..."
-	@if ! command -v nvim >/dev/null 2>&1; then \
-		echo "⚠️  Neovim is not installed or not in PATH"; \
-		exit 1; \
-	fi
-	@NVIM_CONFIG="$(PWD)/home-manager/programs/neovim/init.lua"; \
-	if [ ! -f "$$NVIM_CONFIG" ]; then \
-		echo "⚠️  Could not find Neovim configuration at $$NVIM_CONFIG"; \
-		exit 1; \
-	fi
-	@echo "📝 Validating Neovim configuration syntax..."
-	@mkdir -p ~/.config/nvim
-	@ln -sf "$(PWD)/home-manager/programs/neovim/init.lua" ~/.config/nvim/init.lua
-	@if [ -f "$(PWD)/home-manager/programs/neovim/nvim-pack-lock.json" ]; then \
-		ln -sf "$(PWD)/home-manager/programs/neovim/nvim-pack-lock.json" ~/.config/nvim/nvim-pack-lock.json; \
-	fi
-	@nvim --headless -c "lua dofile('$(PWD)/home-manager/programs/neovim/init.lua')" -c "qa" 2>&1; \
-	EXIT_CODE=$$?; \
-	if [ $$EXIT_CODE -eq 0 ]; then \
-		echo "✅ Neovim configuration is valid"; \
-	else \
-		echo "❌ Neovim configuration has errors (exit code: $$EXIT_CODE)"; \
-		exit $$EXIT_CODE; \
-	fi
-
-.PHONY: lua-check-neovim-dev
-lua-check-neovim-dev: ## Run the Neovim Lua check inside the Nix dev shell (mirrors CI).
-	@echo "🧪 Running Neovim Lua check inside the Nix dev shell..."
-	@DEVENV_ROOT=$(CURDIR) $(NIX_ALLOW_UNFREE) $(NIX_EXEC) develop $(NIX_FLAGS) .# --command $(MAKE) lua-check-neovim
 
 .PHONY: lua-check-hammerspoon
 lua-check-hammerspoon: ## Check Hammerspoon configuration.
